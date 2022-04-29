@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WinUI3_SplashScreen (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "WinUI3_SplashScreen (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
