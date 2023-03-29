@@ -48,7 +48,6 @@ namespace WinUI3_SplashScreen
         }
 
         private Window m_window;
-
         public SplashScreen m_sc;
 
         private async void LaunchTask()
@@ -56,7 +55,9 @@ namespace WinUI3_SplashScreen
             m_sc = new SplashScreen();
             m_sc.Initialize();
             IntPtr hBitmap = await m_sc.GetBitmap(@"Assets\Butterfly_Brown.png");
-            m_sc.DisplaySplash(IntPtr.Zero, hBitmap);      
+            m_sc.DisplaySplash(IntPtr.Zero, hBitmap, null);
+            // m_sc.DisplaySplash(IntPtr.Zero, IntPtr.Zero, @"Assets\XboxSplashScreen.mp4");
+            // m_sc.DisplaySplash(IntPtr.Zero, IntPtr.Zero, @"Assets\Firework_black_background_640x400.mp4");
         }
     }
 }

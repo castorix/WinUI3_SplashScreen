@@ -6,19 +6,15 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
+using GlobalStructures;
+using MFPlay;
+using static MFPlay.MFPlayTools;
+using Microsoft.UI.Xaml.Controls;
+
 namespace WinUI3_SplashScreen
 {
     public class SplashScreen
     {
-        public enum HRESULT : int
-        {
-            S_OK = 0,
-            S_FALSE = 1,
-            E_NOINTERFACE = unchecked((int)0x80004002),
-            E_NOTIMPL = unchecked((int)0x80004001),
-            E_FAIL = unchecked((int)0x80004005)
-        }
-
         //[DllImport("User32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         //public static extern bool UpdateLayeredWindow(IntPtr hwnd, IntPtr hdcDst, ref System.Drawing.Point pptDst, ref System.Drawing.Size psize, IntPtr hdcSrc, ref System.Drawing.Point pprSrc, int crKey, ref BLENDFUNCTION pblend, int dwFlags);
 
@@ -387,7 +383,7 @@ namespace WinUI3_SplashScreen
             GpStatus nStatus = GdiplusStartup(out initToken, ref input, out output);
         }
 
-        public void DisplaySplash(IntPtr hWnd, IntPtr hBitmap)
+        public void DisplaySplash(IntPtr hWnd, IntPtr hBitmap, string sVideo)
         {
             this.hBitmap = hBitmap;
             delegateWndProc = Win32WndProc;
@@ -413,11 +409,62 @@ namespace WinUI3_SplashScreen
                     return;
             }
             string sClassName = wcex.lpszClassName;
-            BITMAP bm;
-            GetObject(hBitmap, Marshal.SizeOf(typeof(BITMAP)), out bm);
-            hWndSplash = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST, sClassName, "Win32 window", WS_POPUP | WS_VISIBLE, 400, 400, bm.bmWidth, bm.bmHeight, hWnd, IntPtr.Zero, wcex.hInstance, IntPtr.Zero);
-            CenterToScreen(hWndSplash);
-            SetPictureToLayeredWindow(hWndSplash, hBitmap);
+            int nWidth = 0, nHeight = 0;
+            if (hBitmap != IntPtr.Zero)
+            {
+                BITMAP bm;
+                GetObject(hBitmap, Marshal.SizeOf(typeof(BITMAP)), out bm);
+                nWidth = bm.bmWidth;
+                nHeight = bm.bmHeight;
+            }
+            //hWndSplash = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_NOACTIVATE, sClassName, "Win32 window", WS_POPUP | WS_VISIBLE, 400, 400, nWidth, nHeight, hWnd, IntPtr.Zero, wcex.hInstance, IntPtr.Zero);
+            hWndSplash = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST, sClassName, "Win32 window", WS_POPUP | WS_VISIBLE, 400, 400, nWidth, nHeight, hWnd, IntPtr.Zero, wcex.hInstance, IntPtr.Zero);
+            if (hBitmap != IntPtr.Zero)
+            {
+                SetPictureToLayeredWindow(hWndSplash, hBitmap);
+                CenterToScreen(hWndSplash);
+            }
+            if (sVideo != null)
+            {
+                MFPlayer pPlayer = new MFPlayer(this, hWndSplash, sVideo);
+            }           
+        }
+
+        public class MFPlayer : IMFPMediaPlayerCallback
+        {
+            public MFPlayer(SplashScreen ss, IntPtr hWnd, string sVideo)
+            {                
+                HRESULT hr = MFPCreateMediaPlayer(sVideo, false, MFP_CREATION_OPTIONS.MFP_OPTION_NONE, this, hWnd, out m_pMediaPlayer);
+                m_hWndParent = hWnd;
+                m_ss = ss;
+            }
+
+            SplashScreen m_ss = null;
+            IntPtr m_hWndParent = IntPtr.Zero;
+            IMFPMediaPlayer m_pMediaPlayer;
+
+            public void OnMediaPlayerEvent(MFP_EVENT_HEADER pEventHeader)
+            {
+                switch (pEventHeader.eEventType)
+                {
+                    case MFP_EVENT_TYPE.MFP_EVENT_TYPE_MEDIAITEM_CREATED:
+                        break;
+
+                    case MFP_EVENT_TYPE.MFP_EVENT_TYPE_MEDIAITEM_SET:
+                        {
+                            SIZE szVideo, szARVideo;
+                            HRESULT hr = m_pMediaPlayer.GetNativeVideoSize(out szVideo, out szARVideo);
+                            if (hr == HRESULT.S_OK)
+                            {
+                                SetWindowPos(m_hWndParent, IntPtr.Zero, 0, 0, szVideo.cx, szVideo.cy, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+                                m_ss.CenterToScreen(m_hWndParent);
+                                hr = m_pMediaPlayer.Play();
+                            }
+                        }
+                        break;
+                }
+                return;
+            }
         }
 
         public void HideSplash(int nSeconds)
@@ -519,7 +566,7 @@ namespace WinUI3_SplashScreen
             IntPtr pptDest = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(System.Drawing.Point)));
             Marshal.StructureToPtr(ptDest, pptDest, false);           
 
-            IntPtr psizeBitmap = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(System.Drawing.Point)));
+            IntPtr psizeBitmap = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(System.Drawing.Size)));
             Marshal.StructureToPtr(sizeBitmap, psizeBitmap, false);
 
             bool bRet = UpdateLayeredWindow(hWnd, hDCScreen, pptDest, psizeBitmap, hDCMem, pptSrc, 0, ref bf, ULW_ALPHA);
@@ -542,7 +589,7 @@ namespace WinUI3_SplashScreen
             GetWindowRect(hWnd, out rc);
             int nX = System.Convert.ToInt32((rcWorkArea.left + rcWorkArea.right) / (double)2 - (rc.right - rc.left) / (double)2);
             int nY = System.Convert.ToInt32((rcWorkArea.top + rcWorkArea.bottom) / (double)2 - (rc.bottom - rc.top) / (double)2);
-            SetWindowPos(hWnd, IntPtr.Zero, nX, nY, -1, -1, SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+            SetWindowPos(hWnd, IntPtr.Zero, nX, nY, -1, -1, SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
         }
 
         private int Win32WndProc(IntPtr hwnd, uint msg, int wParam, IntPtr lParam)
