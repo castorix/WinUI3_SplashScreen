@@ -254,10 +254,10 @@ namespace WinUI3_SplashScreen
         public static extern bool DestroyWindow(IntPtr hWnd);
 
         [DllImport("User32.dll", CharSet = CharSet.Auto)]
-        public static extern IntPtr CallWindowProc(IntPtr wndProc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+        public static extern IntPtr CallWindowProc(IntPtr wndProc, IntPtr hWnd, uint msg, UIntPtr wParam, IntPtr lParam);
 
         [DllImport("User32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern int DefWindowProc(IntPtr hWnd, uint uMsg, int wParam, IntPtr lParam);
+        public static extern int DefWindowProc(IntPtr hWnd, uint uMsg, UIntPtr wParam, IntPtr lParam);
 
         [DllImport("User32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern short RegisterClass(ref WNDCLASS wc);
@@ -268,7 +268,7 @@ namespace WinUI3_SplashScreen
         [DllImport("User32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool UnregisterClass(string lpClassName, IntPtr hInstance);
 
-        public delegate int WNDPROC(IntPtr hwnd, uint uMsg, int wParam, IntPtr lParam);
+        public delegate int WNDPROC(IntPtr hwnd, uint uMsg, UIntPtr wParam, IntPtr lParam);
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public struct WNDCLASS
@@ -592,7 +592,7 @@ namespace WinUI3_SplashScreen
             SetWindowPos(hWnd, IntPtr.Zero, nX, nY, -1, -1, SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE);
         }
 
-        private int Win32WndProc(IntPtr hwnd, uint msg, int wParam, IntPtr lParam)
+        private int Win32WndProc(IntPtr hwnd, uint msg, UIntPtr wParam, IntPtr lParam)
         {
             //int wmId, wmEvent;
             switch (msg)
